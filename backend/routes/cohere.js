@@ -6,7 +6,7 @@ const router = express.Router();
 router.post("/suggest-tasks", async (req, res) => {
   const { eventName, eventDescription, venueNeeded, cateringNeeded } = req.body;
 
-  const prompt = `Suggest a detailed list of planning tasks for an event: ${eventName}. ${eventDescription}. ${
+  const prompt = `Suggest 4 to 5 lines a breif 6 to 8 words of sentence tasks for an event: ${eventName}. ${eventDescription}. ${
     venueNeeded ? "A venue is required." : ""
   } ${cateringNeeded ? "Catering is needed." : ""}`;
 

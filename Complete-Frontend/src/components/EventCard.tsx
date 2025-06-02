@@ -55,7 +55,7 @@ const EventCard: React.FC<EventCardProps> = ({ _id, title, date, location, descr
       <CardFooter>
         <Button 
           variant="outline" 
-          className="w-full"
+          className="w-full border border-green-400"
           onClick={handleView}
         >
           View Details

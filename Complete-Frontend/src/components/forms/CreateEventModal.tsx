@@ -353,7 +353,7 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-green-500" disabled={loading}>
               {loading ? "Creating Event..." : "Create Event"}
             </Button>
           </form>

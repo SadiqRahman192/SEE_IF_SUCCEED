@@ -4,6 +4,7 @@ import CreateEventForm from '@/components/forms/CreateEventModal';
 import { toast } from 'sonner';
 import { fetchEventById, Event } from '../lib/api'; // Import Event and fetchEventById
 import { FormValues } from '@/components/forms/CreateEventModal'; // Import FormValues
+import Navigation from '@/components/layout/Navigation';
 
 const EditEvent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,10 +60,13 @@ const EditEvent: React.FC = () => {
   }
 
   return (
+    <>
+    <Navigation />
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Edit Event</h1>
       <CreateEventForm eventId={id} defaultValues={eventData} />
     </div>
+    </>
   );
 };
 

@@ -65,14 +65,6 @@ export default function Navigation({
               Home
             </button>
             <button
-              onClick={() => handleNavigation("/#features", "features")}
-              className={`text-foreground/70 hover:text-green-500 transition-colors ${
-                currentView === "features" ? "text-green-500" : ""
-              }`}
-            >
-              Features
-            </button>
-            <button
               onClick={() => handleNavigation("/dashboard", "dashboard")}
               className={`text-foreground/70 hover:text-green-500 transition-colors ${
                 currentView === "dashboard" ? "text-green-500" : ""

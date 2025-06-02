@@ -20,6 +20,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { deleteEvent } from '../lib/api'; // Import deleteEvent
+import Navigation from './layout/Navigation';
 
 export interface Task {
   id: string;
@@ -168,7 +169,9 @@ const EventDetails: React.FC<EventDetailsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <>
+    <Navigation />
+    <div className="space-y-6 m-14">
       <div className="flex flex-col-reverse gap-4 md:flex-row md:justify-between md:items-center">
         <h1 className="text-2xl font-bold">{title}</h1>
         
@@ -240,7 +243,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({
           
           <Button 
             variant="outline" 
-            className="w-full md:w-auto" 
+            className="w-full md:w-auto text-green-500 border border-green-600" 
             onClick={handleDownloadPdf}
           >
             <Download className="h-4 w-4 mr-2" />
@@ -270,7 +273,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({
                 }
               }}
             />
-            <Button onClick={handleAddTask}>Add Task</Button>
+            <Button onClick={handleAddTask} className='bg-green-500'>Add Task</Button>
           </div>
           {tasks.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">No tasks available</p>
@@ -309,6 +312,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({
         </CardContent>
       </Card>
     </div>
+    </>
   );
 };
 

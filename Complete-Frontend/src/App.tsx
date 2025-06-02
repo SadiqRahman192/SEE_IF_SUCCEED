@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "./context/AuthContext";
+
+// Pages
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Pricing from "./pages/Pricing";
@@ -15,8 +17,13 @@ import NotFound from "./pages/NotFound";
 import AllEvents from "./pages/Allevents";
 import EventDetailsPage from "./pages/EventDetails";
 import EditEvent from "./pages/EditEvent";
-import SignInForm from "./components/SignInForm";
-import SignUpForm from "./components/SignUpForm";
+
+// Auth Forms
+import SignInForm from "./components/forms/SignInForm";
+import SignUpForm from "./components/forms/SignUpForm";
+
+// Layout
+import Layout from "./components/Layout";
 
 const queryClient = new QueryClient();
 
@@ -29,29 +36,62 @@ const App = () => (
         <AuthProvider>
           <BrowserRouter>
             <Routes>
+              {/* Auth Routes - no layout */}
               <Route path="/signin" element={<SignInForm />} />
               <Route path="/signup" element={<SignUpForm />} />
-              <Route path="/" element={<Index />} />
+
+              {/* Public Routes with Layout */}
+              <Route path="/" element={<Layout><Index /></Layout>} />
+              <Route path="/pricing" element={<Layout><Pricing /></Layout>} />
+
+              {/* Private Routes with Layout */}
               <Route
                 path="/dashboard"
-                element={<PrivateRoute><Dashboard /></PrivateRoute>}
+                element={
+                  <PrivateRoute>
+                    <Layout><Dashboard /></Layout>
+                  </PrivateRoute>
+                }
               />
               <Route
                 path="/allevents"
-                element={<PrivateRoute><AllEvents /></PrivateRoute>}
+                element={
+                  <PrivateRoute>
+                    <Layout><AllEvents /></Layout>
+                  </PrivateRoute>
+                }
               />
               <Route
                 path="/event/:id"
-                element={<PrivateRoute><EventDetailsPage /></PrivateRoute>}
+                element={
+                  <PrivateRoute>
+                    <Layout><EventDetailsPage /></Layout>
+                  </PrivateRoute>
+                }
               />
               <Route
                 path="/edit-event/:id"
-                element={<PrivateRoute><EditEvent /></PrivateRoute>}
+                element={
+                  <PrivateRoute>
+                    <Layout><EditEvent /></Layout>
+                  </PrivateRoute>
+                }
               />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/reminders" element={<Reminders />} />
-              <Route path="/reminders/:eventId" element={<ReminderForm />} />
-              <Route path="*" element={<NotFound />} />
+              <Route
+                path="/reminders"
+                element={
+                  <Layout><Reminders /></Layout>
+                }
+              />
+              <Route
+                path="/reminders/:eventId"
+                element={
+                  <Layout><ReminderForm /></Layout>
+                }
+              />
+
+              {/* 404 Page with Layout */}
+              <Route path="*" element={<Layout><NotFound /></Layout>} />
             </Routes>
           </BrowserRouter>
         </AuthProvider>

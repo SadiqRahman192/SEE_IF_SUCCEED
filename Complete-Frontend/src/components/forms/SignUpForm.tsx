@@ -1,41 +1,53 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { useAuth } from "../../context/AuthContext";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { toast } from "sonner";
+import Navigation from "../layout/Navigation";
 
-export default function SignInForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function SignUpForm() {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(""); // Add error state
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
-      await login(email, password);
+      await register(email, password, name);
+      toast.success("Registered successfully!");
       navigate("/dashboard");
     } catch (error) {
-      setError(error.message || "Login failed");
+      console.error("Registration error:", error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <>
+    <Navigation/>
     <Card className="max-w-md mx-auto mt-12 p-6">
       <CardHeader>
-        <CardTitle>Sign In</CardTitle>
+        <CardTitle>Sign Up</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter name"
+            />
+          </div>
           <div>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -56,21 +68,20 @@ export default function SignInForm() {
               placeholder="Enter password"
             />
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Logging In..." : "Sign In"}
+          <Button type="submit" className="bg-green-600 w-full text-white hover:bg-green-600">
+            {loading ? "Signing Up..." : "Sign Up"}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm">
-          Sign up here{" "}
-          <button
-            onClick={() => navigate("/signup")}
+          Sign in here <button
+            onClick={() => navigate("/signin")}
             className="text-blue-500 hover:underline"
           >
-            Sign Up
+            Sign In
           </button>
         </p>
       </CardContent>
     </Card>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { fetchEvents, Event } from '../lib/api'; // Import Event interface
 import { useAuth } from '../context/AuthContext';
+import Navigation from '@/components/layout/Navigation';
 
 const AllEvents: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]); // Use Event interface
@@ -26,6 +27,8 @@ const AllEvents: React.FC = () => {
   }, []);
 
   return (
+    <>
+    <Navigation />
     <div className="space-y-8 p-6 lg:p-8">
       <h1 className="text-3xl font-bold text-foreground">All Events</h1>
 
@@ -50,6 +53,7 @@ const AllEvents: React.FC = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
