@@ -1,0 +1,14 @@
+# Backend
+node_modules
+dist
+.env
+*.log
+*.tsbuildinfo
+coverage
+*.sqlite
+*.db
+
+# General
+.DS_Store
+.vscode/
+.idea/
