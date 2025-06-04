@@ -176,3 +176,22 @@ export const fetchEvents = async () => {
     throw error;
   }
 };
+
+export interface Task {
+  _id: string;
+  title: string;
+  completed: boolean;
+  eventId: string;
+  createdAt: string;
+}
+
+export const fetchPendingTasks = async (): Promise<Task[]> => {
+  try {
+    const response = await api.get("/api/tasks/pending");
+    return response.data;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch pending tasks.";
+    toast.error(errorMessage);
+    throw error;
+  }
+};
