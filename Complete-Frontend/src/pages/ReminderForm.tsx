@@ -11,18 +11,21 @@ import { ArrowLeft, Mail, Calendar, Clock, MapPin, User, Loader2 } from "lucide-
 import Navigation from "@/components/layout/Navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import { fetchEventById, Event } from "../lib/api"; // Import fetchEventById and Event interface
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton for loading state
 
-interface Event {
-  id: number;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  attendees: number;
-  status: 'upcoming' | 'planning' | 'completed';
-  category: string;
-  description: string;
-}
+// Use the Event interface from api.ts directly
+// interface Event {
+//   id: number;
+//   title: string;
+//   date: string;
+//   time: string;
+//   location: string;
+//   attendees: number;
+//   status: 'upcoming' | 'planning' | 'completed';
+//   category: string;
+//   description: string;
+// }
 
 interface ReminderFormData {
   to_email: string;
@@ -30,35 +33,12 @@ interface ReminderFormData {
   custom_message: string;
 }
 
-const mockEvents: Event[] = [
-  {
-    id: 1,
-    title: "Annual Company Retreat",
-    date: "2024-06-15",
-    time: "09:00",
-    location: "Mountain Resort",
-    attendees: 120,
-    status: "upcoming",
-    category: "Conference",
-    description: "Annual team building and strategy retreat for all company employees."
-  },
-  {
-    id: 2,
-    title: "Product Launch Event",
-    date: "2024-06-20",
-    time: "14:00",
-    location: "Convention Center",
-    attendees: 500,
-    status: "planning",
-    category: "Product Launch",
-    description: "Launching our new flagship product with media and stakeholders."
-  }
-];
-
 const ReminderForm = () => {
-  const { eventId } = useParams();
+  const { eventId } = useParams<{ eventId: string }>(); // Ensure eventId is string
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true); // Add loading state
+  const [error, setError] = useState<string | null>(null); // Add error state
   const [form, setForm] = useState<ReminderFormData>({
     to_email: "",
     to_name: "",
@@ -69,9 +49,26 @@ const ReminderForm = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const foundEvent = mockEvents.find(e => e.id === parseInt(eventId || ""));
-    setEvent(foundEvent || null);
-  }, [eventId]);
+    const getEventDetails = async () => {
+      if (!eventId) {
+        setError("Event ID is missing.");
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const data = await fetchEventById(eventId); // Fetch event by ID
+        setEvent(data);
+      } catch (err) {
+        setError("Failed to fetch event details.");
+        console.error("Error fetching event details:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getEventDetails();
+  }, [eventId]); // Depend on eventId
 
   const handleInputChange = (field: keyof ReminderFormData, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -80,7 +77,6 @@ const ReminderForm = () => {
   const formRef = useRef<HTMLFormElement>(null);
 
   const isValidEmail = (email: string) => {
-    // Basic email regex for validation
     return /\S+@\S+\.\S+/.test(email);
   };
 
@@ -105,9 +101,9 @@ const ReminderForm = () => {
         custom_message: form.custom_message,
         event_title: event.title,
         event_date: new Date(event.date).toLocaleDateString(),
-        event_time: event.time,
+        event_time: "N/A", // Time is not in Event interface, placeholder
         event_location: event.location,
-        event_attendees: event.attendees,
+        event_attendees: "N/A", // Attendees is not in Event interface, placeholder
       };
 
       try {
@@ -138,25 +134,50 @@ const ReminderForm = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "upcoming":
-        return "bg-blue-500";
-      case "planning":
-        return "bg-yellow-500";
-      default:
-        return "bg-gray-500";
+  const getStatusColor = (eventDate: string) => { // Derive status from date
+    const date = new Date(eventDate);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    if (date >= now) {
+      return "bg-blue-500"; // Upcoming
     }
+    return "bg-gray-500"; // Completed or past
   };
 
-  const [currentView, setCurrentView] = useState("reminders"); // Default to "reminders" for this page
+  const [currentView, setCurrentView] = useState("reminders");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation currentView={currentView} setCurrentView={setCurrentView} />
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <Skeleton className="h-[200px] w-full mb-6" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-[400px] w-full" />
+            <Skeleton className="h-[400px] w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation currentView={currentView} setCurrentView={setCurrentView} />
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!event) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation currentView={currentView} setCurrentView={setCurrentView} />
         <div className="container mx-auto px-4 py-8">
-          <p>Event not found</p>
+          <p>Event not found.</p>
         </div>
       </div>
     );
@@ -166,7 +187,7 @@ const ReminderForm = () => {
     <div className="min-h-screen bg-gray-50">
       <Navigation currentView={currentView} setCurrentView={setCurrentView} />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Toaster /> {/* Add Toaster component here */}
+        <Toaster />
         {/* Navigation */}
         <div className="mb-6 flex flex-col sm:flex-row gap-2">
           <Button 
@@ -190,8 +211,8 @@ const ReminderForm = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl">{event.title}</CardTitle>
-              <Badge className={getStatusColor(event.status)}>
-                {event.status}
+              <Badge className={getStatusColor(event.date)}> {/* Use event.date to derive status */}
+                {new Date(event.date) >= new Date(new Date().setHours(0,0,0,0)) ? "Upcoming" : "Completed"}
               </Badge>
             </div>
           </CardHeader>
@@ -206,7 +227,8 @@ const ReminderForm = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
+              {/* Time is not in Event interface, remove or add placeholder */}
+              {/* <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center text-sm text-gray-600">
                   <Clock className="h-4 w-4 mr-2" />
                   <div>
@@ -214,7 +236,7 @@ const ReminderForm = () => {
                     <p>{event.time}</p>
                   </div>
                 </div>
-              </div>
+              </div> */}
               <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="h-4 w-4 mr-2" />
@@ -224,7 +246,8 @@ const ReminderForm = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
+              {/* Attendees is not in Event interface, remove or add placeholder */}
+              {/* <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center text-sm text-gray-600">
                   <User className="h-4 w-4 mr-2" />
                   <div>
@@ -232,7 +255,7 @@ const ReminderForm = () => {
                     <p>{event.attendees}</p>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </CardContent>
         </Card>
@@ -355,7 +378,7 @@ const ReminderForm = () => {
                     <h4 className="font-medium">{event.title}</h4>
                     <p className="text-sm text-gray-600 mt-1">
                       <strong>Date:</strong> {new Date(event.date).toLocaleDateString()}<br />
-                      <strong>Time:</strong> {event.time}<br />
+                      <strong>Time:</strong> {"N/A"}<br /> {/* Use placeholder for time */}
                       <strong>Location:</strong> {event.location}
                     </p>
                   </div>

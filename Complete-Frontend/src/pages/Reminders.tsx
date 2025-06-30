@@ -1,108 +1,75 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react"; // Import useEffect
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Mail, Calendar, Clock, MapPin, Users } from "lucide-react";
-import  Navigation  from "@/components/layout/Navigation";
+import Navigation from "@/components/layout/Navigation";
 import { useNavigate } from "react-router-dom";
-
-interface Event {
-  id: number;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  attendees: number;
-  status: 'upcoming' | 'planning' | 'completed';
-  category: string;
-  description: string;
-}
-
-const mockEvents: Event[] = [
-  {
-    id: 1,
-    title: "Annual Company Retreat",
-    date: "2024-06-15",
-    time: "09:00",
-    location: "Mountain Resort",
-    attendees: 120,
-    status: "upcoming",
-    category: "Conference",
-    description: "Annual team building and strategy retreat for all company employees."
-  },
-  {
-    id: 2,
-    title: "Product Launch Event",
-    date: "2024-06-20",
-    time: "14:00",
-    location: "Convention Center",
-    attendees: 500,
-    status: "planning",
-    category: "Product Launch",
-    description: "Launching our new flagship product with media and stakeholders."
-  },
-  {
-    id: 3,
-    title: "Team Building Workshop",
-    date: "2024-06-25",
-    time: "10:00",
-    location: "Office Conference Room",
-    attendees: 25,
-    status: "upcoming",
-    category: "Workshop",
-    description: "Interactive workshop to improve team collaboration and communication."
-  },
-  {
-    id: 4,
-    title: "Client Presentation",
-    date: "2024-07-01",
-    time: "15:30",
-    location: "Virtual Event",
-    attendees: 15,
-    status: "planning",
-    category: "Meeting",
-    description: "Quarterly business review and presentation to key clients."
-  }
-];
+import { fetchEvents, Event } from "../lib/api"; // Import fetchEvents and Event interface
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton for loading state
 
 const Reminders = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [currentView, setCurrentView] = useState("reminders"); // Default to "reminders" for this page
+  const [currentView, setCurrentView] = useState("reminders");
+  const [events, setEvents] = useState<Event[]>([]); // State for fetched events
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getEvents = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchEvents();
+        setEvents(data);
+      } catch (err) {
+        setError("Failed to fetch events.");
+        console.error("Error fetching events:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getEvents();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "upcoming":
+      case "upcoming": // Assuming 'upcoming' status for future events
         return "bg-blue-500";
-      case "planning":
+      case "planning": // Assuming 'planning' status for events in planning
         return "bg-yellow-500";
       default:
         return "bg-gray-500";
     }
   };
 
-  const filteredEvents = mockEvents.filter(event => {
+  const filteredEvents = events.filter(event => { // Filter from fetched events
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.location.toLowerCase().includes(searchTerm.toLowerCase());
     
+    const eventDate = new Date(event.date);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Normalize current date to start of day
+
     if (activeFilter === "all") return matchesSearch;
-    if (activeFilter === "upcoming") return matchesSearch && event.status === "upcoming";
-    if (activeFilter === "planning") return matchesSearch && event.status === "planning";
+    if (activeFilter === "upcoming") return matchesSearch && eventDate >= now; // Filter for upcoming events
     
-    return matchesSearch;
+    return matchesSearch; // Should not reach here if filters are "all" or "upcoming"
   });
 
+  // Calculate stats from fetched events
   const stats = {
-    totalEvents: mockEvents.length,
-    upcomingEvents: mockEvents.filter(e => e.status === "upcoming").length,
-    totalAttendees: mockEvents.reduce((sum, e) => sum + e.attendees, 0),
-    inPlanning: mockEvents.filter(e => e.status === "planning").length
+    totalEvents: events.length,
+    upcomingEvents: events.filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).length,
+    totalAttendees: 0, // Attendees data is not available in Event interface, placeholder
+    inPlanning: 0 // Planning status is not directly available, placeholder
   };
 
-  const handleSendReminder = (eventId: number) => {
+  const handleSendReminder = (eventId: string) => { // Change eventId type to string
     navigate(`/reminders/${eventId}`);
   };
 
@@ -151,63 +118,57 @@ const Reminders = () => {
             >
               Upcoming
             </Button>
-            <Button
-              variant={activeFilter === "planning" ? "default" : "outline"}
-              className={activeFilter === "planning" ? "bg-green-500 hover:bg-green-600" : ""}
-              onClick={() => setActiveFilter("planning")}
-            >
-              Planning
-            </Button>
           </div>
         </div>
 
         {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {filteredEvents.map((event) => (
-            <Card key={event.id} className="bg-white border-gray-200 hover:shadow-md transition-shadow">
-              <CardHeader className="relative">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg hover:text-green-600 cursor-pointer">
-                    {event.title}
-                  </CardTitle>
-                  <div className="flex flex-col items-end space-y-1">
-                    <Badge className={getStatusColor(event.status)}>
-                      {event.status}
-                    </Badge>
-                    <span className="text-xs text-gray-500">{event.category}</span>
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-[180px] w-full rounded-xl" />
+            ))
+          ) : error ? (
+            <p className="text-red-500 col-span-full">{error}</p>
+          ) : filteredEvents.length === 0 ? (
+            <p className="col-span-full text-center text-gray-500">No events found matching your criteria.</p>
+          ) : (
+            filteredEvents.map((event) => (
+              <Card key={event._id} className="bg-white border-gray-200 hover:shadow-md transition-shadow"> {/* Use event._id */}
+                <CardHeader className="relative">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg hover:text-green-600 cursor-pointer">
+                      {event.title}
+                    </CardTitle>
+                    <div className="flex flex-col items-end space-y-1">
+                      <Badge className={getStatusColor(new Date(event.date) >= new Date(new Date().setHours(0,0,0,0)) ? "upcoming" : "completed")}> {/* Derive status */}
+                        {new Date(event.date) >= new Date(new Date().setHours(0,0,0,0)) ? "Upcoming" : "Completed"}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-                <p className="text-gray-600 text-sm line-clamp-2">{event.description}</p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    {new Date(event.date).toLocaleDateString()}
+                  <p className="text-gray-600 text-sm line-clamp-2">{event.description}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {new Date(event.date).toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <MapPin className="h-4 w-4 mr-2" />
+                      {event.location}
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    {event.time}
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {event.location}
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Users className="h-4 w-4 mr-2" />
-                    {event.attendees} attendees
-                  </div>
-                </div>
-                <Button 
-                  className="w-full bg-green-500 hover:bg-green-600"
-                  onClick={() => handleSendReminder(event.id)}
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Reminders
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <Button 
+                    className="w-full bg-green-500 hover:bg-green-600"
+                    onClick={() => handleSendReminder(event._id)}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Reminders
+                  </Button>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Stats Section */}
@@ -233,14 +194,6 @@ const Reminders = () => {
               <div className="text-center">
                 <p className="text-3xl font-bold text-gray-900">{stats.totalAttendees}</p>
                 <p className="text-sm text-gray-600">Total Attendees</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-gray-900">{stats.inPlanning}</p>
-                <p className="text-sm text-gray-600">In Planning</p>
               </div>
             </CardContent>
           </Card>

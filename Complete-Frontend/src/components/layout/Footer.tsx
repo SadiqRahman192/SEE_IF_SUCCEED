@@ -1,5 +1,6 @@
 
 import { Calendar } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const Footer = () => {
   return (
@@ -19,20 +20,18 @@ export const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">Product</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-              <li><a href="/pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              <li><a href="/dashboard" className="hover:text-white transition-colors">Dashboard</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">API</a></li>
+              <li><Link to="/#features" className="hover:text-white transition-colors">Features</Link></li>
+              <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+              <li><Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
             </ul>
           </div>
           
           <div>
             <h3 className="font-semibold mb-4">Company</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-              <li><a href="/contact" className="hover:text-white transition-colors">Contact</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms</a></li>
+              <li><Link to="/about" className="hover:text-white transition-colors">About</Link></li>
+              <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link></li>
+              <li><Link to="/terms" className="hover:text-white transition-colors">Terms</Link></li>
             </ul>
           </div>
         </div>

@@ -1,36 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import CreateEventForm from '@/components/forms/CreateEventModal';
+import EditEventForm from '@/components/forms/EditEventForm';
 import { toast } from 'sonner';
-import { fetchEventById, Event } from '../lib/api'; // Import Event and fetchEventById
-import { FormValues } from '@/components/forms/CreateEventModal'; // Import FormValues
+import { fetchEventById, Event } from '../lib/api';
 import Navigation from '@/components/layout/Navigation';
 
+interface Params {
+  id?: string;
+  [key: string]: string | undefined;
+}
+
 const EditEvent: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [eventData, setEventData] = useState<FormValues | null>(null); // Use FormValues for state
+  const { id } = useParams<Params>();
+  const [eventData, setEventData] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<string>('dashboard');
 
   useEffect(() => {
-    const getEventForEdit = async () => { // Renamed to avoid conflict
+    const getEventForEdit = async () => {
       if (!id) {
         setLoading(false);
         toast.error("Event ID is missing for editing.");
         return;
       }
       try {
-        const data: Event = await fetchEventById(id); // Use fetchEventById
-        setEventData({
-          title: data.title,
-          description: data.description,
-          date: new Date(data.date), // Convert date string to Date object
-          location: data.location,
-          requiresVenue: data.requiresVenue, // Assuming these exist on Event
-          requiresCatering: data.requiresCatering, // Assuming these exist on Event
-        });
+        const data: Event = await fetchEventById(id);
+        setEventData(data);
       } catch (error) {
         console.error('Error fetching event for editing:', error);
-        // The toast message is already handled by the api.ts function
       } finally {
         setLoading(false);
       }
@@ -61,11 +58,21 @@ const EditEvent: React.FC = () => {
 
   return (
     <>
-    <Navigation />
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Edit Event</h1>
-      <CreateEventForm eventId={id} defaultValues={eventData} />
-    </div>
+      <Navigation currentView={currentView} setCurrentView={setCurrentView} />
+      <div className="container mx-auto px-4 space-y-6">
+        <h1 className="text-left text-2xl font-bold">Edit Event</h1>
+        <EditEventForm
+          eventId={id}
+          defaultValues={eventData ? {
+            title: eventData.title,
+            description: eventData.description,
+            date: new Date(eventData.date),
+            location: eventData.location,
+            requiresVenue: eventData.requiresVenue,
+            requiresCatering: eventData.requiresCatering,
+          } : undefined}
+        />
+      </div>
     </>
   );
 };

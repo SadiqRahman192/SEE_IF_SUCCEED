@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import EventDetailsComponent, { EventDetailsProps, Task } from '@/components/EventDetails';
 import { toast } from 'sonner';
 import { fetchEventById, Event } from '../lib/api'; // Import Event and fetchEventById
+import { AIAssistant } from '@/components/ui/AIAssistant';
 
 // Define an interface for the task data received from the backend
 interface BackendTask {
@@ -16,11 +17,42 @@ interface BackendTask {
 
 const EventDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<EventDetailsProps | null>(null);
+const [event, setEvent] = useState<EventDetailsProps | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]); // State for tasks
   const [loading, setLoading] = useState(true);
   const [eventLoading, setEventLoading] = useState(true); // New state for event loading
   const [tasksLoading, setTasksLoading] = useState(true); // New state for tasks loading
+
+  const handleApplySuggestion = async (taskTitle: string) => {
+    if (!id) {
+      toast.error("Event ID is missing for adding tasks.");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `http://localhost:5000/api/tasks/${id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title: taskTitle }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      toast.success(`Task "${taskTitle}" added successfully!`);
+      fetchTasks(); // Re-fetch tasks to update the list
+    } catch (error) {
+      console.error("Error adding task from suggestion:", error);
+      toast.error("Failed to add task from suggestion. Please try again.");
+    }
+  };
 
   const getEventDetails = async () => { // Renamed to avoid conflict
     if (!id) {
@@ -38,6 +70,8 @@ const EventDetailsPage: React.FC = () => {
         location: eventData.location,
         organizer: eventData.organizer,
         tasks: [], // Initialize tasks as empty array for EventDetailsProps
+        requiresVenue: eventData.requiresVenue || false, // Map requiresVenue
+        requiresCatering: eventData.requiresCatering || false, // Map requiresCatering
       });
     } catch (error) {
       console.error('Error fetching event:', error);
@@ -55,7 +89,12 @@ const EventDetailsPage: React.FC = () => {
     }
     setTasksLoading(true);
     try {
-      const tasksResponse = await fetch(`http://localhost:5000/api/tasks/${id}`);
+      const token = localStorage.getItem("token");
+      const tasksResponse = await fetch(`http://localhost:5000/api/tasks/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
       if (!tasksResponse.ok) {
         throw new Error(`HTTP error! status: ${tasksResponse.status}`);
       }
@@ -66,7 +105,7 @@ const EventDetailsPage: React.FC = () => {
       toast.error('Failed to load tasks.');
       setTasks([]); // Set tasks to empty array on error
     } finally {
-      setTasksLoading(false);
+    setTasksLoading(false);
     }
   };
 
@@ -100,7 +139,22 @@ const EventDetailsPage: React.FC = () => {
     );
   }
   
-  return <EventDetailsComponent {...event} tasks={tasks} onTaskChange={fetchTasks} />;
+  return (
+    <>
+      <EventDetailsComponent {...event} tasks={tasks} onTaskChange={fetchTasks} />
+      <div className="container mx-auto px-4 mt-8">
+        <AIAssistant
+          eventName={event.title}
+          eventDescription={event.description}
+          venueNeeded={event.requiresVenue || false}
+          cateringNeeded={event.requiresCatering || false}
+          location={event.location}
+          eventId={id || ""} // Pass the eventId from useParams
+          onApplySuggestion={handleApplySuggestion}
+        />
+      </div>
+    </>
+  );
 };
 
 export default EventDetailsPage;

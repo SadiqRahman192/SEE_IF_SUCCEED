@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { ReactNode } from "react";
 
 const Layout = ({ children }: { children: ReactNode }) => {
@@ -9,3 +10,16 @@ const Layout = ({ children }: { children: ReactNode }) => {
 };
 
 export default Layout;
+=======
+import { ReactNode } from "react";
+
+const Layout = ({ children }: { children: ReactNode }) => {
+  return (
+    <div className=""> {/* horizontal margin */}
+      {children}
+    </div>
+  );
+};
+
+export default Layout;
+>>>>>>> e698f63 (enhance and bunch of features to the app)

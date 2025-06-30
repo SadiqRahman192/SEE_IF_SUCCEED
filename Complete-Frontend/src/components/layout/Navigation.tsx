@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/context/AuthContext"; // Fixed path (removed ./)
 import { toast } from "sonner";
 
@@ -92,7 +91,6 @@ export default function Navigation({
 
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <ThemeToggle />
             {isAuthenticated ? (
               <Button onClick={handleLogout} variant="outline" size="sm">
                 Sign Out
@@ -118,7 +116,6 @@ export default function Navigation({
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            <ThemeToggle />
             <Button
               variant="ghost"
               size="sm"

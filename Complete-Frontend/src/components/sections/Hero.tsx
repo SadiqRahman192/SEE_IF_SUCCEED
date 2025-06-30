@@ -1,8 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 export const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-20 bg-gradient-to-br from-green-50 to-gray-50">
       <div className="container mx-auto px-4">
@@ -17,10 +20,10 @@ export const Hero = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <Button size="lg" className="bg-green-500 hover:bg-green-600 text-lg px-8 py-6">
+              <Button size="lg" className="bg-green-500 hover:bg-green-600 text-lg px-8 py-6" onClick={() => navigate("/dashboard")}>
                 Start Planning Now
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-6 hover:bg-transparent">
                 Watch Demo
               </Button>
             </div>

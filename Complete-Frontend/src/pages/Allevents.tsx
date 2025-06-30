@@ -28,8 +28,8 @@ const AllEvents: React.FC = () => {
 
   return (
     <>
-    <Navigation />
-    <div className="space-y-8 p-6 lg:p-8">
+    <Navigation currentView="all-events" setCurrentView={() => {}} />
+    <div className="container mx-auto px-4 space-y-8 p-6 lg:p-8">
       <h1 className="text-3xl font-bold text-foreground">All Events</h1>
 
       {loading ? (

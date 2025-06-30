@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input'; // Import Input component
-import { Calendar, Download, MapPin, Trash, Plus } from 'lucide-react'; // Import Plus icon
+import { Calendar, Download, MapPin, Trash, Plus, Lightbulb } from 'lucide-react'; // Import Plus and Lightbulb icons
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
@@ -21,6 +21,12 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { deleteEvent } from '../lib/api'; // Import deleteEvent
 import Navigation from './layout/Navigation';
+import Layout from './Layout';
+
+interface NavigationProps {
+  currentView: string;
+  setCurrentView: (view: string) => void;
+}
 
 export interface Task {
   id: string;
@@ -37,6 +43,8 @@ export interface EventDetailsProps {
   organizer?: string;
   tasks: Task[];
   onTaskChange?: () => void; // New prop for re-fetching tasks
+  requiresVenue?: boolean; // Added
+  requiresCatering?: boolean; // Added
 }
 
 const EventDetails: React.FC<EventDetailsProps> = ({ 
@@ -67,10 +75,12 @@ const EventDetails: React.FC<EventDetailsProps> = ({
     const newCompletedStatus = !taskToUpdate.completed;
 
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ completed: newCompletedStatus }),
       });
@@ -94,41 +104,117 @@ const EventDetails: React.FC<EventDetailsProps> = ({
     ? Math.round((completedTasksCount / tasks.length) * 100) 
     : 0;
 
-  const [newTaskTitle, setNewTaskTitle] = useState('');
+interface Vendor {
+  name: string;
+  address: string;
+  phone: string;
+  booking_link: string;
+}
 
-  const handleAddTask = async () => {
-    if (!newTaskTitle.trim()) {
-      toast.error("Task title cannot be empty.");
-      return;
+interface AiTaskSuggestion {
+  task: string;
+  vendors: Vendor[];
+  loadingVendors: boolean;
+}
+
+const [newTaskTitle, setNewTaskTitle] = useState('');
+const [aiTasks, setAiTasks] = useState<AiTaskSuggestion[]>([]); // Updated state for AI suggested tasks
+
+const handleAddTask = async () => {
+  if (!newTaskTitle.trim()) {
+    toast.error("Task title cannot be empty.");
+    return;
+  }
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`http://localhost:5000/api/tasks/${id}`, { // eventId is 'id' here
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title: newTaskTitle }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-    try {
-      const response = await fetch(`http://localhost:5000/api/tasks/${id}`, { // eventId is 'id' here
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ title: newTaskTitle }),
-      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      setNewTaskTitle('');
-      if (onTaskChange) {
-        onTaskChange(); // Trigger re-fetch in parent
-      }
-      toast.success("Task added successfully!");
-    } catch (error) {
-      console.error('Error adding task:', error);
-      toast.error("Failed to add task. Please try again.");
+    setNewTaskTitle('');
+    if (onTaskChange) {
+      onTaskChange(); // Trigger re-fetch in parent
     }
-  };
+    toast.success("Task added successfully!");
+  } catch (error) {
+    console.error('Error adding task:', error);
+    toast.error("Failed to add task. Please try again.");
+  }
+};
+
+const handleGetAiTaskSuggestions = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`http://localhost:5000/api/cohere/tasks-only/${id}`, { // Corrected endpoint
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    setAiTasks(data.suggestions.map((task: string) => ({ task, vendors: [], loadingVendors: false }))); // Initialize with empty vendors array
+    toast.success("AI task suggestions fetched!");
+  } catch (error) {
+    console.error('Error fetching AI task suggestions:', error);
+    toast.error("Failed to fetch AI task suggestions. Please try again.");
+  }
+};
+
+const handleFindVendors = async (taskTitle: string, index: number) => {
+  setAiTasks(prevTasks => prevTasks.map((t, i) => 
+    i === index ? { ...t, loadingVendors: true } : t
+  ));
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`http://localhost:5000/api/vendors/by-task`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ taskTitle, eventId: id }), // Pass task title and event ID
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    setAiTasks(prevTasks => prevTasks.map((t, i) => 
+      i === index ? { ...t, vendors: data.suggested_providers, loadingVendors: false } : t
+    ));
+    toast.success("Vendors fetched successfully!");
+  } catch (error) {
+    console.error('Error fetching vendors:', error);
+    toast.error("Failed to fetch vendors. Please try again.");
+    setAiTasks(prevTasks => prevTasks.map((t, i) => 
+      i === index ? { ...t, loadingVendors: false } : t
+    ));
+  }
+};
 
   const handleDeleteTask = async (taskId: string) => {
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -146,10 +232,10 @@ const EventDetails: React.FC<EventDetailsProps> = ({
   };
 
   const handleEdit = () => {
-    navigate(`/edit-event/${id}`);
+      navigate(`/edit-event/${id}`);
   };
   
-  const handleDelete = async () => {
+const handleDelete = async () => {
     try {
       await deleteEvent(id); // Use the imported deleteEvent function
       navigate('/');
@@ -168,10 +254,12 @@ const EventDetails: React.FC<EventDetailsProps> = ({
     }
   };
 
+  const [currentView, setCurrentView] = useState<string>('event-details');
+
   return (
-    <>
-    <Navigation />
-    <div className="space-y-6 m-14">
+    <Layout>
+    <Navigation currentView={currentView} setCurrentView={setCurrentView} />
+    <div className="container mx-auto px-4 space-y-6 m-14">
       <div className="flex flex-col-reverse gap-4 md:flex-row md:justify-between md:items-center">
         <h1 className="text-2xl font-bold">{title}</h1>
         
@@ -251,6 +339,86 @@ const EventDetails: React.FC<EventDetailsProps> = ({
           </Button>
         </CardContent>
       </Card>
+
+
+      {/* New Card for AI Task Suggestions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">AI Task Suggestions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {aiTasks.length > 0 && (
+            <div className="space-y-4"> {/* Increased spacing */}
+              <p className="font-medium">Suggested Tasks:</p>
+              {aiTasks.map((aiTask, index) => (
+                <div key={index} className="space-y-2 p-4 rounded-lg bg-muted/30 shadow-sm"> {/* Increased padding, rounded corners, shadow */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-base font-semibold">{aiTask.task}</p> {/* Bold and larger font */}
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleFindVendors(aiTask.task, index)}
+                        disabled={aiTask.loadingVendors}
+                      >
+                        {aiTask.loadingVendors ? 'Loading...' : 'Find Vendors'}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => {
+                          setNewTaskTitle(aiTask.task); // Pre-fill input with suggestion
+                          toast.info(`"${aiTask.task}" copied to input. Click 'Add Task' to add.`);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {aiTask.vendors.length > 0 && (
+                    <div className="ml-4 space-y-2 text-muted-foreground text-sm"> {/* Increased spacing, slightly larger font */}
+                      <p className="font-semibold">Suggested Vendors:</p>
+                      <ul className="space-y-4"> {/* Increased spacing between list items */}
+                        {aiTask.vendors.map((vendor, vIndex) => { // Corrected: iterate over aiTask.vendors
+                          const addressParts = vendor.address.split(',').map(part => part.trim()).filter(part => part.length > 0);
+                          let shortAddress = '';
+                          if (addressParts.length >= 2) {
+                            const cityPart = addressParts[addressParts.length - 2]; // e.g., "Peshawar City Tehsil 25000" or "Karachi Division 74700"
+                            shortAddress = cityPart.split(' ')[0]; // Take the first word, e.g., "Peshawar" or "Karachi"
+                            if (vendor.address.includes('FB Area')) { // Special case for Karachi (FB Area)
+                              shortAddress += ' (FB Area)';
+                            }
+                          }
+                          return (
+                            <li key={vIndex} className="space-y-1"> {/* Use space-y for vertical spacing within each vendor block */}
+                              <div className="flex items-center gap-2">
+                                <span role="img" aria-label="building">🏢</span>
+                                <span className="font-medium">{vendor.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2 ml-6 text-sm text-muted-foreground"> {/* Indent and style address */}
+                                <span role="img" aria-label="location">📍</span>
+                                <span>{shortAddress}</span>
+                              </div>
+                              {vendor.booking_link !== 'N/A' && (
+                                <div className="flex items-center gap-2 ml-6 text-sm text-blue-500 hover:underline"> {/* New line for website link */}
+                                  <a href={vendor.booking_link} target="_blank" rel="noopener noreferrer">
+                                    Website
+                                  </a>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -312,7 +480,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({
         </CardContent>
       </Card>
     </div>
-    </>
+    </Layout>
   );
 };
 
