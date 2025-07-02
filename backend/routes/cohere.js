@@ -45,8 +45,8 @@ router.post('/get-vendor-suggestions', getTaskVendorSuggestions);
 //   return "general";
 // }
 
-router.post("/get-enriched-suggestions", async (req, res) => {
-  const { eventName, eventDescription, venueNeeded, cateringNeeded } = req.body; // Removed 'location' as providers are fetched separately
+router.post("/suggest-tasks-enriched", async (req, res) => {
+  const { eventName, eventDescription, venueNeeded, cateringNeeded } = req.body;
 
   const prompt = `Suggest 4 to 5 lines a breif 6 to 8 words of sentence tasks for an event: ${eventName}. ${eventDescription}. ${
     venueNeeded ? "A venue is required." : ""
